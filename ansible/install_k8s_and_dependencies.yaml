@@ -1,0 +1,104 @@
+- hosts: all
+  become: yes
+  tasks:
+   - name: install curl
+     apt:
+       name: curl
+       state: present
+
+   - name: install git
+     apt:
+       name: git
+       state: present
+
+   - name: install wget
+     apt:
+       name: wget
+       state: present
+
+   - name: install APT Transport HTTPS
+     apt:
+       name: apt-transport-https
+       state: present
+
+   - name: add Kubernetes apt-key
+     apt_key:
+       url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+       state: present
+
+   - name: add Kubernetes' APT repository
+     apt_repository:
+      repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+      state: present
+      filename: 'kubernetes'
+
+   - name: install kubelet
+     apt:
+       name: kubelet
+       state: present
+       update_cache: true
+
+   - name: install kubeadm
+     apt:
+       name: kubeadm
+       state: present
+
+   - name: disable swap
+     become: yes
+     shell: |
+       swapoff -a 
+       sed -ri '/\sswap\s/s/^#?/#/' /etc/fstab
+
+
+   - name: install Docker
+     apt:
+       name: docker.io
+       state: present
+       update_cache: true
+
+   - name: ensure Docker service is enabled and started
+     ansible.builtin.systemd:
+       name: docker
+       enabled: true
+       state: started
+
+   - name: download executables for Docker shim
+     shell: wget https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.1/cri-dockerd-0.3.1.amd64.tgz && tar xvf cri-dockerd-0.3.1.amd64.tgz
+   
+   - name: move executables for DOcker shim in the corresponding directory
+     become: yes
+     shell: mv cri-dockerd/cri-dockerd /usr/local/bin/
+
+   - name: configure systemd units for Docker shim
+     become: yes
+     shell: |
+       wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.service
+       wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.socket
+       mv cri-docker.socket cri-docker.service /etc/systemd/system/
+       sed -i -e 's,/usr/bin/cri-dockerd,/usr/local/bin/cri-dockerd,' /etc/systemd/system/cri-docker.service
+
+   - name: enable the service for Docker shim
+     ansible.builtin.systemd:
+       name: cri-docker.service
+       enabled: true
+       daemon_reload: true
+
+   - name: enable and start the socket for Docker shim
+     ansible.builtin.systemd:
+       name: cri-docker.socket
+       enabled: true
+       state: started
+
+   - name: ensure kubelet service is enabled
+     ansible.builtin.systemd:
+       name: kubelet
+       enabled: true    
+
+- hosts: masters
+  become: yes
+  tasks:
+   - name: install kubectl
+     apt:
+       name: kubectl
+       state: present
+       force: yes
