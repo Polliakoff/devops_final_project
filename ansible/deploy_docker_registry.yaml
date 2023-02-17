@@ -1,0 +1,149 @@
+- hosts: master-node
+  tasks:
+    - name: create directory and certificates
+      shell: |
+        mkdir -p $HOME/registry && cd "$_"
+        mkdir certs
+        openssl req -x509 -newkey rsa:4096 -days 365 -nodes -sha256 -keyout certs/tls.key -out certs/tls.crt -subj "/CN=docker-registry" -addext "subjectAltName = DNS:docker-registry"
+      args:
+        chdir: $HOME
+        creates: registry/certs/tls.crt
+
+#    - name: create kubernetes secret with certificates
+#      kubernetes.core.k8s:
+#        state: present
+#        definition:
+#          apiVersion: v1
+#          kind: Secret
+#          type: tls
+#          metadata:
+#            namespace: default
+#            name: certs-secret
+#          data:
+#            cert: /home/user_for_ansible/registry/certs/tls.crt
+#            key: /home/user_for_ansible/registry/certs/tls.key
+
+    - name: create kubernetes secret with certificates
+      shell: |
+        kubectl create secret tls certs-secret --cert=registry/certs/tls.crt --key=registry/certs/tls.key
+        touch secret_created.txt
+      args:
+        chdir: $HOME
+        creates: secret_created.txt
+
+    - name: create kubernetes persistent volume
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: PersistentVolume
+          metadata:
+            namespace: default
+            name: docker-repo-pv
+          spec:
+            capacity:
+              storage: 1Gi
+            accessModes:
+              - ReadWriteOnce
+            hostPath:
+              path: /tmp/repository
+
+    - name: create kubernetes persistent volume claim
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            namespace: default
+            name: docker-repo-pvc
+          spec:
+            accessModes:
+            - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1Gi
+
+    - name: create kubernetes pod with docker registry
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            namespace: default
+            name: docker-registry-pod
+            labels:
+              app: registry
+          spec:
+            containers:
+            - name: registry
+              image: registry:2
+              volumeMounts:
+              - name: repo-vol
+                mountPath: "/var/lib/registry"
+              - name: certs-vol
+                mountPath: "/certs"
+                readOnly: true
+              env:
+              - name: REGISTRY_HTTP_TLS_CERTIFICATE
+                value: "/certs/tls.crt"
+              - name: REGISTRY_HTTP_TLS_KEY
+                value: "/certs/tls.key"
+            volumes:
+            - name: repo-vol
+              persistentVolumeClaim:
+                claimName: docker-repo-pvc
+            - name: certs-vol
+              secret:
+                secretName: certs-secret
+
+    - name: create kubernetes service for docker registry
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            namespace: default
+            name: docker-registry
+          spec:
+            selector:
+              app: registry
+            ports:
+            - port: 5000
+              targetPort: 5000
+
+    - name: get docker registry cluster ip
+      shell: |
+        kubectl get pod docker-registry-pod --template '{{.status.podIP}}'
+        touch vars_created.txt
+      register: reg_ip
+      args:
+        chdir: $HOME
+        creates: vars_created.txt
+
+- hosts: all
+  become: yes
+  tasks: 
+    - name: append docker registry as host on all machines
+      shell: |
+        echo '{{ hostvars['master-node'].reg_ip }} docker-registry' >> /etc/hosts
+        touch registry_hosted.txt
+      args:
+        chdir: $HOME
+        creates: registry_hosted.txt
+
+    - name: make directory for certificates
+      shell: |
+        mkdir /etc/docker/certs.d/docker-registry:5000
+        touch dir_made.txt
+      args:
+        chdir: $HOME
+        creates: dir_made.txt
+
+    - name: copy certificate to all hosts
+      ansible.posix.synchronize: 
+        src: /home/user_for_ansible/registry/certs/tls.crt 
+        dest: /etc/docker/certs.d/docker-registry:5000/ca.crt
+      delegate_to: master-node
