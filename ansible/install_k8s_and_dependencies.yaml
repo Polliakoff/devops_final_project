@@ -1,6 +1,19 @@
 - hosts: all
   become: yes
   tasks:
+   - name: install pip
+     apt:
+       name: python3-pip
+       state: present
+
+   - name: install python pre-requisites
+     pip:
+       name:
+         - openshift
+         - pyyaml
+         - kubernetes
+       state: present
+
    - name: install curl
      apt:
        name: curl
@@ -44,11 +57,9 @@
        state: present
 
    - name: disable swap
-     become: yes
      shell: |
        swapoff -a 
        sed -ri '/\sswap\s/s/^#?/#/' /etc/fstab
-
 
    - name: install Docker
      apt:
@@ -63,19 +74,35 @@
        state: started
 
    - name: download executables for Docker shim
-     shell: wget https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.1/cri-dockerd-0.3.1.amd64.tgz && tar xvf cri-dockerd-0.3.1.amd64.tgz
+     get_url: 
+       url: https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.1/cri-dockerd-0.3.1.amd64.tgz 
+       dest: $HOME/cri-dockerd-0.3.1.amd64.tgz
    
-   - name: move executables for DOcker shim in the corresponding directory
-     become: yes
-     shell: mv cri-dockerd/cri-dockerd /usr/local/bin/
+   - name: unpack and move executables for Docker shim in the corresponding directory
+     shell: | 
+       tar xvf cri-dockerd-0.3.1.amd64.tgz
+       mv cri-dockerd/cri-dockerd /usr/local/bin/
+     args:
+       chdir: $HOME
+       creates: /usr/local/bin/cri-dockerd
 
-   - name: configure systemd units for Docker shim
-     become: yes
+   - name: download systemd units for Docker shim 1
+     get_url:
+       url: https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.service
+       dest: $HOME/cri-docker.service
+
+   - name: download systemd units for Docker shim 2
+     get_url:
+       url: https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.socket
+       dest: $HOME/cri-docker.socket
+   
+   - name: install systemd units for Docker shim 
      shell: |
-       wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.service
-       wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.socket
        mv cri-docker.socket cri-docker.service /etc/systemd/system/
        sed -i -e 's,/usr/bin/cri-dockerd,/usr/local/bin/cri-dockerd,' /etc/systemd/system/cri-docker.service
+     args:
+       chdir: $HOME
+       creates: /etc/systemd/system/cri-docker.socket
 
    - name: enable the service for Docker shim
      ansible.builtin.systemd:
@@ -94,7 +121,7 @@
        name: kubelet
        enabled: true    
 
-- hosts: masters
+- hosts: master-node
   become: yes
   tasks:
    - name: install kubectl
