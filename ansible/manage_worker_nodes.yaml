@@ -13,4 +13,7 @@
   become: yes
   tasks:
     - name: join cluster
-      shell: "{{ hostvars['master-node'].join_command }} --cri-socket unix:///run/cri-dockerd.sock"
+      shell: "{{ hostvars['master-node'].join_command }} --cri-socket unix:///run/cri-dockerd.sock >> joined_to_cluster.txt"
+      args:
+        chdir: $HOME
+        creates: joined_to_cluster.txt
