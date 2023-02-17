@@ -1,14 +1,20 @@
-- hosts: masters
+- hosts: master-node
   become: yes
   tasks:
     - name: pull configuration images for master node
-      shell: sudo kubeadm config images pull --cri-socket unix:///run/cri-dockerd.sock
+      shell: sudo kubeadm config images pull --cri-socket unix:///run/cri-dockerd.sock >> images_pulled.txt
+      args:
+        chdir: $HOME
+        creates: images_pulled.txt
     
     - name: initialize kubernetes cluster
       shell: |
         kubeadm init \
           --pod-network-cidr=192.168.0.0/16 \
-          --cri-socket unix:///run/cri-dockerd.sock 
+          --cri-socket unix:///run/cri-dockerd.sock >> cluster_initialized.txt
+      args:
+        chdir: $HOME
+        creates: cluster_initialized.txt
 
     - name: create .kube directory
       become: yes
@@ -25,9 +31,36 @@
         remote_src: yes
         owner: user_for_ansible
 
-    - name: install network plugin
+    - name: install network plugin 1
       become: yes
       become_user: user_for_ansible
+      kubernetes.core.k8s:
+        state: present
+        src: https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/tigera-operator.yaml
+
+    - name: install network plugin 2
+      become: yes
+      become_user: user_for_ansible
+      kubernetes.core.k8s:
+        state: present
+        src: https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/custom-resources.yaml
+
+    - name: download secret encryption plugin
+      get_url:
+        url: https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.19.5/kubeseal-0.19.5-linux-amd64.tar.gz
+        dest: $HOME/kubeseal-0.19.5-linux-amd64.tar.gz
+
+    - name: unpack and install secret encryption plugin
       shell: |
-        kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/tigera-operator.yaml
-        kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/custom-resources.yaml
+        tar -xvf kubeseal-0.19.5-linux-amd64.tar.gz
+        mv kubeseal /usr/local/bin/kubeseal
+      args:
+        chdir: $HOME      
+        creates: /usr/local/bin/kubeseal
+
+    - name: create kubernetes controller pod
+      become: yes
+      become_user: user_for_ansible
+      kubernetes.core.k8s:
+        state: present
+        src: https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.19.5/controller.yaml
