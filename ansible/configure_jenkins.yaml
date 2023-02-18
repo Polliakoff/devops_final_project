@@ -9,8 +9,18 @@
 
     - name: provide Jenkins user with Kubernetes config
       shell: |
-        cp ~user_for_ansible/.kube/config ~jenkins/.kube/ 
-        chown -R jenkins: ~jenkins/.kube/
+        mkdir /var/lib/jenkins/.kube/ 
+        cp /home/user_for_ansible/.kube/config /var/lib/jenkins/.kube/ 
+        chown -R jenkins: /var/lib/jenkins/.kube/
       args:
-        creates: ~jenkins/.kube/config
+        creates: /var/lib/jenkins/.kube/config
+
+    - name: reboot machine to apply changes
+      ansible.builtin.reboot:
+
+    - name: restart kubelet to ensure cluster avaliability
+      ansible.builtin.systemd:
+        name: kubelet
+        state: restarted
+
    

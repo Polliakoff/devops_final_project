@@ -34,7 +34,7 @@ pipeline {
         stage('Check Kubernetes configuration'){
             steps {
                 echo '=========================Check Kubernetes configuration========================='
-                sh 'sleep 5'
+                sh 'sleep 10'
                 echo '=========================secrets========================='
                 sh 'kubectl get secrets -o wide'
                 echo '=========================pods========================='
