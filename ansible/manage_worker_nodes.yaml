@@ -17,3 +17,15 @@
       args:
         chdir: $HOME
         creates: joined_to_cluster.txt
+
+- hosts: master-node
+  tasks:
+    - name: label node worloads
+      shell: |
+        kubectl label nodes worker-node-db workload=db
+        kubectl label nodes worker-node-webapp workload=webapp
+        kubectl label nodes docker-registry workload=docker-registry
+        touch nodes_labeled.txt
+      args:
+        chdir: $HOME
+        creates: nodes_labeled.txt 

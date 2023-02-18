@@ -61,6 +61,15 @@
             labels:
               app: registry
           spec:
+            affinity:
+              nodeAffinity:
+                requiredDuringSchedulingIgnoredDuringExecution:
+                  nodeSelectorTerms:
+                  - matchExpressions:
+                    - key: workload
+                      operator: In
+                      values:
+                      - docker-registry
             containers:
             - name: registry
               image: registry:2
