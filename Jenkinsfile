@@ -17,20 +17,20 @@ pipeline {
                 sh 'kubectl apply -f db-password-secret.yaml'
             }
         }
-        stage('Create webapp deployment and service'){
-            steps {
-                echo '=========================Create webapp deployment and service========================='
-                sh 'kubectl apply -f webapp-deployment.yaml'
-                sh 'kubectl apply -f webapp-service.yaml'
-            }
-        }
         stage('Create database deployment and service'){
             steps {
                 echo '=========================Create database deployment and service========================='
                 sh 'kubectl apply -f db-deployment.yaml'
                 sh 'kubectl apply -f db-service.yaml'
             }
-        }       
+        }
+        stage('Create webapp deployment and service'){
+            steps {
+                echo '=========================Create webapp deployment and service========================='
+                sh 'kubectl apply -f webapp-deployment.yaml'
+                sh 'kubectl apply -f webapp-service.yaml'
+            }
+        }    
         stage('Check Kubernetes configuration'){
             steps {
                 echo '=========================Check Kubernetes configuration========================='
