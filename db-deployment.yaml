@@ -22,7 +22,7 @@ spec:
                 values:
                 - db
       containers:
-        - image: docker-registry:5000/local_mariadb
+        - image: mariadb:latest
           name: db
           env:
             - name: MYSQL_DATABASE

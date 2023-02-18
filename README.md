@@ -1,7 +1,7 @@
 # devops_final_project
 Требования перед запуском (выполняется вручную):
 Для развертывания проекта необходимо 5 машин:
-- (1 м.) - Машина админа, на ней ansible, openssh, sshpswd, ansible-galaxy collection install kubernetes.core, ansible-galaxy collection install ansible.posix(?)
+- (1 м.) - Машина админа, на ней ansible, openssh, sshpswd, ansible-galaxy collection install kubernetes.core
 - (2-5 мм.) - Ноды кластера, на них python3, openssh
 - Прописать управляемые машины в хостс на машине админа
 - Сгенерировать на админской машине и отправить на управляемые ключи ssh

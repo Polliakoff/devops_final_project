@@ -22,7 +22,7 @@ spec:
                 values:
                 - webapp
       containers:
-        - image: docker-registry:5000/local_minikube_dz-web
+        - image: docker-registry:5000/flask_webapp
           name: webapp
           ports:
             - containerPort: 8080

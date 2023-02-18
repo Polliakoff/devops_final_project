@@ -1,18 +1,16 @@
 #!/bin/bash
 
 echo
-echo "Pull and create necessary images"
+echo "Create necessary images"
 echo
-#eval $(minikube docker-env)
-sudo docker compose pull
-sudo docker compose build
-sudo docker tag mariadb docker-registry:5000/local_mariadb
-sudo docker tag minikube_dz-web docker-registry:5000/local_minikube_dz-web
-sudo docker push docker-registry:5000/local_mariadb
-sudo docker push docker-registry:5000/local_minikube_dz-web
+sudo docker build -t docker-registry:5000/flask_webapp .
+sudo docker push docker-registry:5000/flask_webapp
+
 echo
-echo "Create Kubernetes secret from file"
+echo "Create Kubernetes Sealed secret from file"
 echo
+kubeseal --fetch-cert > public-key-cert.pem
+kubeseal --format=yaml --cert=public-key-cert.pem < db-password-secret-unsealed.yaml > db-password-secret.yaml
 kubectl apply -f db-password-secret.yaml
 
 echo

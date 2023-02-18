@@ -1,0 +1,16 @@
+- hosts: master-node
+  become: yes
+  tasks:
+    - name: add Jennkins user to docker group
+      ansible.builtin.user:
+        name: jenkins
+        groups: docker
+        append: yes
+
+    - name: provide Jenkins user with Kubernetes config
+      shell: |
+        cp ~user_for_ansible/.kube/config ~jenkins/.kube/ 
+        chown -R jenkins: ~jenkins/.kube/
+      args:
+        creates: ~jenkins/.kube/config
+   
