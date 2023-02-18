@@ -22,6 +22,7 @@ pipeline {
                 echo '=========================Create database deployment and service========================='
                 sh 'kubectl apply -f db-deployment.yaml'
                 sh 'kubectl apply -f db-service.yaml'
+                sh 'sleep 5'
             }
         }
         stage('Create webapp deployment and service'){
@@ -34,7 +35,7 @@ pipeline {
         stage('Check Kubernetes configuration'){
             steps {
                 echo '=========================Check Kubernetes configuration========================='
-                sh 'sleep 10'
+                sh 'sleep 15'
                 echo '=========================secrets========================='
                 sh 'kubectl get secrets -o wide'
                 echo '=========================pods========================='
