@@ -2,31 +2,16 @@
   tasks:
     - name: create directory and certificates
       shell: |
-        mkdir -p $HOME/registry && cd "$_"
-        mkdir certs
-        openssl req -x509 -newkey rsa:4096 -days 365 -nodes -sha256 -keyout certs/tls.key -out certs/tls.crt -subj "/CN=docker-registry" -addext "subjectAltName = DNS:docker-registry"
+        mkdir -p $HOME/registry
+        mkdir $HOME/registry/certs
+        openssl req -x509 -newkey rsa:4096 -days 365 -nodes -sha256 -keyout $HOME/registry/certs/tls.key -out $HOME/registry/certs/tls.crt -subj "/CN=docker-registry" -addext "subjectAltName = DNS:docker-registry"
       args:
         chdir: $HOME
         creates: registry/certs/tls.crt
 
-#    - name: create kubernetes secret with certificates
-#      kubernetes.core.k8s:
-#        state: present
-#        definition:
-#          apiVersion: v1
-#          kind: Secret
-#          type: tls
-#          metadata:
-#            namespace: default
-#            name: certs-secret
-#          data:
-#            cert: /home/user_for_ansible/registry/certs/tls.crt
-#            key: /home/user_for_ansible/registry/certs/tls.key
-
     - name: create kubernetes secret with certificates
       shell: |
-        kubectl create secret tls certs-secret --cert=registry/certs/tls.crt --key=registry/certs/tls.key
-        touch secret_created.txt
+        kubectl create secret tls certs-secret --cert=registry/certs/tls.crt --key=registry/certs/tls.key >> secret_created.txt
       args:
         chdir: $HOME
         creates: secret_created.txt
@@ -116,19 +101,25 @@
 
     - name: get docker registry cluster ip
       shell: |
-        kubectl get pod docker-registry-pod --template '{{.status.podIP}}'
-        touch vars_created.txt
+        kubectl get service docker-registry -o jsonpath='{.spec.clusterIP}'
+        touch cluster_ip_found.txt
       register: reg_ip
       args:
         chdir: $HOME
-        creates: vars_created.txt
+        creates: cluster_ip_found.txt
+
+    - name: get certificate file
+      fetch: 
+        src: /home/user_for_ansible/registry/certs/tls.crt
+        dest: /home/poliakoff/
+        flat: true
 
 - hosts: all
   become: yes
   tasks: 
     - name: append docker registry as host on all machines
       shell: |
-        echo '{{ hostvars['master-node'].reg_ip }} docker-registry' >> /etc/hosts
+        echo '{{ hostvars['master-node'].reg_ip.stdout_lines[0] }} docker-registry' >> /etc/hosts
         touch registry_hosted.txt
       args:
         chdir: $HOME
@@ -136,14 +127,13 @@
 
     - name: make directory for certificates
       shell: |
-        mkdir /etc/docker/certs.d/docker-registry:5000
+        mkdir -p /etc/docker/certs.d/docker-registry:5000
+        cd /etc/docker/certs.d/docker-registry:5000        
         touch dir_made.txt
       args:
-        chdir: $HOME
-        creates: dir_made.txt
+        creates: /etc/docker/certs.d/docker-registry:5000/dir_made.txt
 
     - name: copy certificate to all hosts
-      ansible.posix.synchronize: 
-        src: /home/user_for_ansible/registry/certs/tls.crt 
+      copy:
+        src: /home/poliakoff/tls.crt
         dest: /etc/docker/certs.d/docker-registry:5000/ca.crt
-      delegate_to: master-node
