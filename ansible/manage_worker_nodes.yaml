@@ -20,7 +20,7 @@
 
 - hosts: master-node
   tasks:
-    - name: label node worloads
+    - name: label node workloads
       shell: |
         kubectl label nodes worker-node-db workload=db
         kubectl label nodes worker-node-webapp workload=webapp

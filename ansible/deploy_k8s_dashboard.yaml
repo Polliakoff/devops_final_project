@@ -1,0 +1,48 @@
+- hosts: master-node
+  tasks:
+    - name: deploy dashboard
+      kubernetes.core.k8s:
+        state: present
+        src: https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+
+    - name: set dashboard service to nodeport
+      kubernetes.core.k8s:
+        state: patched
+        namespace: kubernetes-dashboard
+        kind: svc
+        name: kubernetes-dashboard
+        definition:
+          spec:
+            type: NodePort
+            ports:
+            - nodePort: 32000
+              port: 443
+              protocol: TCP
+              targetPort: 8443
+
+    - name: create default admin user for dashboard
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: admin-user
+            namespace: kubernetes-dashboard
+
+    - name: create role binding for default admin user for dashboard
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRoleBinding
+          metadata:
+            name: admin-user
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: cluster-admin
+          subjects:
+          - kind: ServiceAccount
+            name: admin-user
+            namespace: kubernetes-dashboard
