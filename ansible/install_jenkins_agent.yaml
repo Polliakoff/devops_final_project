@@ -1,0 +1,21 @@
+- hosts: master-node
+  become: yes
+  tasks:
+    - name: install java to agent
+      apt:
+        name: openjdk-11-jre
+        state: present
+
+    - name: add agent user to docker group
+      ansible.builtin.user:
+        name: user_for_ansible
+        groups: docker
+        append: yes
+
+    - name: reboot machine to apply changes
+      ansible.builtin.reboot:
+
+    - name: restart kubelet to ensure cluster avaliability
+      ansible.builtin.systemd:
+        name: kubelet
+        state: restarted
