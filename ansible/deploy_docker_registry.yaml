@@ -1,3 +1,14 @@
+- hosts: docker-registry
+  become: yes
+  tasks:
+    - name: alter target node filesystem
+      shell: |
+        mkdir -p /mnt/container-registry
+        touch repo_dir_created.txt
+      args:
+        chdir: $HOME
+        creates: repo_dir_created.txt
+
 - hosts: master-node
   tasks:
     - name: create directory and certificates
