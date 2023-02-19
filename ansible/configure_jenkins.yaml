@@ -23,4 +23,12 @@
         name: kubelet
         state: restarted
 
+- hosts: docker-registry
+  become: yes
+  tasks:
+    - name: install java to agent
+      apt:
+        name: openjdk-11-jre
+        state: present
+
    
