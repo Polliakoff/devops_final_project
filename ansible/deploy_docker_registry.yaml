@@ -28,10 +28,21 @@
           spec:
             capacity:
               storage: 1Gi
+            volumeMode: Filesystem
             accessModes:
               - ReadWriteOnce
-            hostPath:
-              path: /tmp/repository
+            persistentVolumeReclaimPolicy: Delete
+            storageClassName: local-storage
+            local:
+              path: /mnt/container-registry
+            nodeAffinity:
+              required:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: workload
+                    operator: In
+                    values:
+                    - docker-registry
 
     - name: create kubernetes persistent volume claim
       kubernetes.core.k8s:
@@ -44,10 +55,12 @@
             name: docker-repo-pvc
           spec:
             accessModes:
-            - ReadWriteOnce
+              - ReadWriteOnce
+            volumeMode: Filesystem
             resources:
               requests:
                 storage: 1Gi
+            storageClassName: docker-registry-local-storage
 
     - name: create kubernetes pod with docker registry
       kubernetes.core.k8s:
