@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent { label 'docker-registry' } 
 
     stages {
         stage('Create necessary images') {

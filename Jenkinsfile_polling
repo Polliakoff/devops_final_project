@@ -1,0 +1,19 @@
+pipeline {
+    agent { label 'docker-registry' } 
+
+    stages {
+        stage('Create necessary images') {
+            steps {
+                echo '=========================Create necessary images========================='
+                sh 'docker build -t docker-registry:5000/flask_webapp .'
+                sh 'docker push docker-registry:5000/flask_webapp'
+            }
+        }
+        stage('restart the updated deployment') {
+            steps {
+                echo '=========================restart the updated deployment========================='
+                sh 'kubectl rollout restart deployment webapp'
+            }
+        }  
+    }
+}
