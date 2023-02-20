@@ -24,15 +24,22 @@ spec:
       containers:
       - name: prometheus-cont
         image: prom/prometheus
+        args:
+            - "--config.file=/etc/prometheus/prometheus.yaml"
+            - "--storage.local.path=/prometheus/"
         volumeMounts:
         - name: config-volume
           mountPath: /etc/prometheus/prometheus.yaml
           subPath: prometheus.yaml
+        - name: prometheus-storage-volume
+          mountPath: /prometheus/
         ports:
         - containerPort: 9090
       volumes:
       - name: config-volume
         configMap:
           name: prometheus-config
+      - name: prometheus-storage-volume
+        emptyDir: {}
       serviceAccountName: prometheus
 
