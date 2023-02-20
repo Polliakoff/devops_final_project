@@ -45,7 +45,7 @@ def listBlog():
 
     response = ''
     for c in rec:
-        response = response  + '<div>   Hello World  ' + c + '</div>'
+        response = response  + '<div>   Hello World test 2 ' + c + '</div>'
     return response
 
 
