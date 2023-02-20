@@ -42,23 +42,7 @@ pipeline {
                 sh 'kubectl get pods -o wide'
                 echo '=========================services========================='
                 sh 'kubectl get services -o wide'
-            }
-        }
-        stage('deploy monitoring: prometheus'){
-            steps {
-                echo '=========================deploy monitoring: prometheus========================='
-                sh 'kubectl apply -f prometheus/prometheus-role.yaml'
-                sh 'kubectl apply -f prometheus/prometheus-serv-acc.yaml'
-                sh 'kubectl apply -f prometheus/prometheus-role-binding.yaml'
-                sh 'kubectl create configmap prometheus-config --from-file prometheus/prometheus.yaml'
-                sh 'kubectl apply -f prometheus/prometheus-deployment.yaml'
-                sh 'kubectl apply -f prometheus/prometheus-service.yaml'
-            }
-        }
-        stage('deploy monitoring: grafana'){
-            steps {
-                echo '=========================deploy monitoring: grafana========================='
-                sh 'kubectl apply -f grafana/grafana-full.yaml'
+                echo '=========================ALL DONE========================='
             }
         }
     }
