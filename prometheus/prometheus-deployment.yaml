@@ -3,14 +3,14 @@ kind: Deployment
 metadata:
   name: prometheus-deployment
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
-      app: prometheus-server
+      app: prometheus
   template:
     metadata:
       labels:
-        app: prometheus-server
+        app: prometheus
     spec:
       affinity:
         nodeAffinity:
@@ -22,28 +22,17 @@ spec:
                 values:
                 - webapp
       containers:
-        - name: prometheus
-          image: prom/prometheus:latest
-          args:
-            - "-config.file=/etc/prometheus/conf/prometheus.yml"
-            # Metrics are stored in an emptyDir volume which
-            # exists as long as the Pod is running on that Node.
-            # The data in an emptyDir volume is safe across 
-            # container crashes.
-            - "-storage.local.path=/prometheus/"
-          ports:
-            - containerPort: 9090
-          volumeMounts:
-            - name: prometheus-config-volume
-              mountPath: /etc/prometheus/conf/
-            - name: prometheus-storage-volume
-              mountPath: /prometheus/
+      - name: prometheus-cont
+        image: prom/prometheus
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/prometheus/prometheus.yml
+          subPath: prometheus.yml
+        ports:
+        - containerPort: 9090
       volumes:
-        # The config map we will create then bind to our volume mount.
-        - name: prometheus-config-volume
-          configMap:
-            name: prometheus-server-conf
-        # Create the actual volume for the metric data
-        - name: prometheus-storage-volume
-          emptyDir: {} # containers in the Pod can all read and write the same files here.
+      - name: config-volume
+        configMap:
+          name: prometheus-config
+      serviceAccountName: prometheus
 
