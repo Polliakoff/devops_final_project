@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: prometheus-deployment
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: prometheus
@@ -26,8 +26,8 @@ spec:
         image: prom/prometheus
         volumeMounts:
         - name: config-volume
-          mountPath: /etc/prometheus/prometheus.yml
-          subPath: prometheus.yml
+          mountPath: /etc/prometheus/prometheus.yaml
+          subPath: prometheus.yaml
         ports:
         - containerPort: 9090
       volumes:
