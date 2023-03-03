@@ -1,0 +1,10 @@
+[masters]
+master-node ansible_host=192.168.122.3 ansible_user=user_for_ansible
+
+[workers]
+worker-node-db ansible_host=192.168.122.166 ansible_user=user_for_ansible
+worker-node-webapp ansible_host=192.168.122.156 ansible_user=user_for_ansible
+docker-registry ansible_host=192.168.122.4 ansible_user=user_for_ansible
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
